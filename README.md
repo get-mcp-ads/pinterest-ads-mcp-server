@@ -28,16 +28,37 @@ Run locally with your own platform credentials and a client that supports stdio 
 
 ## What's new
 
+<!-- release-history:start -->
 **[v2.1.0: Rename tools and native video uploads](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases/tag/v2.1.0) · October 23, 2026**
 
 - Add `pinterest_rename_campaign`, `pinterest_rename_adgroup` and `pinterest_rename_ad`. Each previews, then changes the name only.
-- Add the native video upload flow. `pinterest_prepare_video_upload` registers the upload, `pinterest_upload_video` sends a local file or an HTTPS URL to the destination Pinterest returns, and `pinterest_get_video_upload` reads the processing status.
-- Add the optional account allowlist `PINTEREST_AD_ACCOUNT_IDS`. When it is set, requests that name another ad account are refused before they are sent, and account discovery only returns the listed accounts.
-- Deprecate `1`, `yes` and `on` for `PINTEREST_ENABLE_WRITES`. They still enable writes, with a notice on stderr. Use `true`.
-- Add timeouts and response size limits to every request. Incomplete analytics responses are refused instead of being shortened.
-- Update the MCP SDK to 1.32.1 and require a Node.js release that carries the October 2026 security fixes.
+- Add the native video upload flow: `pinterest_prepare_video_upload`, `pinterest_upload_video` and `pinterest_get_video_upload`. The video comes from a local file or an HTTPS URL that passes the report URL checks, and goes to the upload destination Pinterest returns, without the access token.
+- Add the optional account allowlist `PINTEREST_AD_ACCOUNT_IDS`. When it is set, requests that name another ad account are refused before they are sent, and account discovery only returns listed accounts. When it is unset, the server writes a notice to stderr at startup, and `PINTEREST_AD_ACCOUNT_ID` remains a default account as in 2.0.
+- Deprecate `1`, `yes` and `on` for `PINTEREST_ENABLE_WRITES`. They still enable writes, with a notice on stderr. Unrecognized values now stop the server at startup instead of silently disabling writes.
+- Refuse incomplete sync analytics responses and read targeting analytics from `MetricsResponse.data`.
+- Rename the attribution default in `pinterest://attribution` to `defaultAttribution`. The former `defaults` key remains as an alias.
+- Add timeouts and response size limits to every Pinterest request, and redact the access token from provider error text.
+- Update `@modelcontextprotocol/sdk` to 1.32.1 and regenerate the lockfile. `npm audit --omit=dev` reports no vulnerabilities.
+- Require Node.js 22.23.4, 24.22.1, 26.12.1 or a newer release. The server writes a warning to stderr on an older runtime, and `npm run doctor` reports it.
+- Publish releases from version tags with `release.yml`, which replaces `publish-mcp.yml`. CI covers Node 22, 24 and 26 and audits runtime dependencies. Dependabot proposes updates weekly.
+- Expose 29 read tools and 30 write tools.
+- No breaking change. Version 3.0.0 will require `PINTEREST_AD_ACCOUNT_IDS` and will accept only `true` to enable writes.
 
-[Full changelog](CHANGELOG.md) · [Source synchronization details](SOURCE_SYNC.md) · [All releases](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases)
+**Earlier releases**
+
+| Version | Date | Highlights |
+| --- | --- | --- |
+| 2.0.1 | September 23, 2026 | Public repository restored |
+| 2.0.0 | September 20, 2026 | Gateway sync and security fixes |
+| 1.1.0 | September 13, 2026 | Platform capability sync and quality contracts |
+| 1.0.2 | August 30, 2026 | Announce the package version over MCP. |
+| 1.0.1 | August 30, 2026 | Add `server.json` and `mcpName` for the official MCP Registry, under `com.getmcpads/pinterest-ads`. |
+| 1.0.0 | August 29, 2026 | First open-source release |
+
+[Full changelog](CHANGELOG.md) · [All releases](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases)
+<!-- release-history:end -->
+
+Source synchronization: [SOURCE_SYNC.md](SOURCE_SYNC.md).
 
 ### Upgrade notes
 

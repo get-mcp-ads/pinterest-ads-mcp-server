@@ -29,3 +29,5 @@ Each step skips when its target already holds this version. After a partial fail
 ## After the release
 
 Check that `npm view @getmcpads/pinterest-ads-mcp-server version` returns the new version, that the GitHub release is marked as Latest and that the registry lists the version for `com.getmcpads/pinterest-ads`.
+
+Before tagging, add the release to CHANGELOG.md as `## X.Y.Z - YYYY-MM-DD - Title`, then run `npm run release-history`. The README shows every release from the changelog, and the test suite fails when it falls behind.
