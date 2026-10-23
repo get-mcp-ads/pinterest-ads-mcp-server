@@ -45,7 +45,7 @@
         },
         {
           "name": "PINTEREST_AD_ACCOUNT_IDS",
-          "description": "Comma-separated ad account IDs this server may use. Without it, PINTEREST_AD_ACCOUNT_ID is the only allowed account.",
+          "description": "Recommended. Comma-separated ad account IDs this server may use; other accounts are refused. Required from 3.0.0.",
           "isRequired": false,
           "isSecret": false
         },

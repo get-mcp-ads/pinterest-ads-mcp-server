@@ -7,8 +7,8 @@ Reviewed on 2026-10-23 against getmcpads source revision `3e1c2c8`. The previous
 - Add `pinterest_rename_campaign`, `pinterest_rename_adgroup` and `pinterest_rename_ad`. Each sends only the entity ID and the new name, plus the ad account on campaigns, then reads the entity back (gateway commit `958ba80`).
 - Add the native video upload flow: `pinterest_prepare_video_upload` registers the media with `POST /media`, `pinterest_upload_video` sends the bytes to the upload destination that Pinterest returns, and `pinterest_get_video_upload` reads the processing status. The gateway reads frozen Launcher files. This server reads a local file path or an HTTPS URL that passes the same checks as async report URLs. The upload receipt stays in this process's memory instead of being encrypted with a hosted signing key.
 - Refuse incomplete sync analytics responses instead of dropping rows, and read targeting analytics from `MetricsResponse.data` (native part of gateway commit `858251a`).
-- Rename the attribution default in `pinterest://attribution` to `defaultAttribution`, as in gateway commit `1a77582`.
-- Filter account discovery to the configured accounts, as the gateway does for selected accounts. This server also refuses any request that names an unlisted ad account.
+- Rename the attribution default in `pinterest://attribution` to `defaultAttribution`, as in gateway commit `1a77582`. The former `defaults` key stays as an alias until 3.0.0.
+- Filter account discovery to the accounts in `PINTEREST_AD_ACCOUNT_IDS` when it is set, as the gateway does for selected accounts. This server then also refuses any request that names an unlisted ad account. The variable is optional in 2.x and will be required in 3.0.0.
 
 ## Reviewed and left out
 

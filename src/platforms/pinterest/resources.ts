@@ -64,7 +64,7 @@ const ENTITY_COLUMNS = [
   "MONTH",
 ];
 
-export function registerPinterestResources(server: McpServer, enableWrites = false): void {
+export function registerPinterestResources(server: McpServer, enableWrites = false, accountAllowlist = false): void {
   server.resource("pinterest-manifest", "pinterest://manifest", async () => ({
     contents: [{
       uri: "pinterest://manifest",
@@ -121,7 +121,9 @@ export function registerPinterestResources(server: McpServer, enableWrites = fal
         safety: [
           enableWrites ? "Write tools require explicit confirmation after a preview." : "Write tools are disabled on this instance.",
           "OAuth access and refresh tokens are never returned in tool responses.",
-          "Requests that name an ad account outside PINTEREST_AD_ACCOUNT_IDS are refused before they are sent.",
+          accountAllowlist
+            ? "Requests that name an ad account outside PINTEREST_AD_ACCOUNT_IDS are refused before they are sent."
+            : "No account allowlist is configured. Set PINTEREST_AD_ACCOUNT_IDS to restrict this server to the listed ad accounts.",
           "Historical/wide reports automatically use async report creation and download.",
         ],
       }, null, 2),
@@ -174,6 +176,8 @@ export function registerPinterestResources(server: McpServer, enableWrites = fal
           reporting_timezone: ["PINTEREST_TIME_ZONE", "AD_ACCOUNT_TIME_ZONE"],
         },
         defaultAttribution: { click: 30, engagement: 30, view: 1, conversionReportTime: "TIME_OF_AD_ACTION" },
+        // Deprecated alias of defaultAttribution, kept until 3.0.0.
+        defaults: { click: 30, engagement: 30, view: 1, conversionReportTime: "TIME_OF_AD_ACTION" },
         liveAcceptedPresets: ["60/60/60", "60/60/30", "60/60/7", "60/60/1", "30/30/30", "30/30/7", "30/30/1", "7/7/7", "7/7/1", "7/0/0", "1/1/1", "1/0/0"],
         liveRejectedExamples: ["30/0/0", "0/0/1"],
         rule: "Attribution windows are request parameters, not dimensions. Run separate reports when comparing windows.",

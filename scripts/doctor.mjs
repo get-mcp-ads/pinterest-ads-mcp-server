@@ -22,15 +22,21 @@ async function runtimeCheck() {
 
 const hasAccess = requiredAccess.every(present);
 const hasRefresh = requiredRefresh.every(present);
-const hasAccounts = accounts.some(present);
+const hasAllowlist = present("PINTEREST_AD_ACCOUNT_IDS");
 const writeFlag = (process.env.PINTEREST_ENABLE_WRITES ?? "").trim();
-const writeFlagValid = ["", "true", "false"].includes(writeFlag);
+const writeValue = writeFlag.toLowerCase();
+const writeFlagValid = ["", "true", "false", "1", "yes", "on", "0", "no", "off"].includes(writeValue);
+const writesEnabled = ["true", "1", "yes", "on"].includes(writeValue);
+const warnings = [];
+if (!hasAllowlist) warnings.push("PINTEREST_AD_ACCOUNT_IDS is not set, so every ad account the token can access is reachable. Version 3.0.0 will require it.");
+if (writesEnabled && writeFlag !== "true") warnings.push(`PINTEREST_ENABLE_WRITES=${writeFlag} is deprecated. Version 3.0.0 will accept only true to enable writes.`);
+if (!writeFlagValid) warnings.push("PINTEREST_ENABLE_WRITES must be true or false.");
 const runtime = await runtimeCheck();
 if (runtime.warning) console.error(runtime.warning);
 
 const result = {
   package: "@getmcpads/pinterest-ads-mcp-server",
-  ok: (hasAccess || hasRefresh) && hasAccounts && writeFlagValid,
+  ok: (hasAccess || hasRefresh) && writeFlagValid,
   runtime,
   auth: {
     accessTokenMode: hasAccess,
@@ -39,12 +45,13 @@ const result = {
     requiredRefresh: requiredRefresh.map((name) => ({ name, present: present(name) })),
   },
   accounts: {
-    allowlistConfigured: hasAccounts,
+    allowlistConfigured: hasAllowlist,
     variables: accounts.map((name) => ({ name, present: present(name) })),
   },
-  writes: { enabled: writeFlag === "true", valid: writeFlagValid },
+  writes: { enabled: writeFlagValid && writesEnabled, valid: writeFlagValid },
+  warnings,
   optional: optional.map((name) => ({ name, present: present(name) })),
-  note: "Set PINTEREST_ACCESS_TOKEN or PINTEREST_REFRESH_TOKEN + PINTEREST_APP_ID + PINTEREST_APP_SECRET, and PINTEREST_AD_ACCOUNT_IDS. PINTEREST_ENABLE_WRITES accepts true or false.",
+  note: "Set PINTEREST_ACCESS_TOKEN or PINTEREST_REFRESH_TOKEN + PINTEREST_APP_ID + PINTEREST_APP_SECRET. PINTEREST_AD_ACCOUNT_IDS is recommended. PINTEREST_ENABLE_WRITES=true enables writes.",
 };
 
 console.log(JSON.stringify(result, null, 2));

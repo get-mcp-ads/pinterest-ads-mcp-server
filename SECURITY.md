@@ -30,9 +30,10 @@ you ask us not to.
   `api-sandbox.pinterest.com` when `PINTEREST_ENVIRONMENT=sandbox`. These hosts
   are listed in `src/core/hosts.ts`. *A test fails the build if another host
   appears in the source.*
-- **Only the listed ad accounts are reachable.** A request that names an ad
-  account outside `PINTEREST_AD_ACCOUNT_IDS` is refused before it is sent, and
-  account discovery only returns the listed accounts.
+- **`PINTEREST_AD_ACCOUNT_IDS` restricts the reachable ad accounts.** When it
+  is set, a request that names another ad account is refused before it is
+  sent, and account discovery only returns the listed accounts. Set it: version
+  3.0.0 will require it.
 - Every request has a timeout and a bound on the size of the response it reads.
 - **No fetch follows a redirect.** Every outbound call sets `redirect: "error"`,
   so a redirect cannot forward your token to another host. *A test fails the

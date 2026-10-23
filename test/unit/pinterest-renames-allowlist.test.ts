@@ -106,6 +106,27 @@ describe("Pinterest account allowlist", () => {
   });
 });
 
+describe("Pinterest without PINTEREST_AD_ACCOUNT_IDS", () => {
+  const config = { accessToken: "fixture", environment: "production", defaultAdAccountId: "111" } as const;
+
+  it("keeps the 2.0 behaviour: the default account is not a restriction", async () => {
+    const fetcher = vi.fn(async () => Response.json({ id: "222" }));
+    vi.stubGlobal("fetch", fetcher);
+    const client = new PinterestClient({ ...config, logLevel: "error" });
+    await expect(client.getAdAccount("222")).resolves.toMatchObject({ id: "222" });
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("/ad_accounts/222");
+    const preview = await caller(config)("pinterest_update_campaign_status", { adAccountId: "222", campaignId: "5", status: "PAUSED" });
+    expect(preview).toMatchObject({ applied: false, adAccountId: "222" });
+    expect(preview.isError).toBeUndefined();
+  });
+
+  it("returns every accessible account from discovery", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ items: [{ id: "111", name: "Default" }, { id: "222", name: "Other" }], bookmark: null })));
+    const listed = await caller(config)("pinterest_list_ad_accounts", {});
+    expect(listed.accounts.map((a: { id: string }) => a.id)).toEqual(["111", "222"]);
+  });
+});
+
 describe("Pinterest response bounds", () => {
   it("refuses a response larger than its bound", async () => {
     await expect(readBoundedText(new Response("x".repeat(64)), 16)).rejects.toThrow("byte limit");

@@ -73,15 +73,15 @@
     "pinterest_ad_account_ids": {
       "type": "string",
       "title": "Pinterest Ad Account IDs",
-      "description": "Comma-separated ad account IDs this server may use. Requests to any other account are refused.",
-      "required": true,
+      "description": "Recommended. Comma-separated ad account IDs this server may use. Requests to any other account are refused. Version 3.0.0 will require it.",
+      "required": false,
       "sensitive": false,
       "default": ""
     },
     "pinterest_ad_account_id": {
       "type": "string",
       "title": "Pinterest Ad Account Id",
-      "description": "Default ad account ID. It must be one of the allowed accounts.",
+      "description": "Default ad account ID. When allowed accounts are set, it must be one of them.",
       "required": false,
       "sensitive": false,
       "default": ""
@@ -92,7 +92,7 @@
       "description": "Set to true to expose 30 write tools. Default calls preview; confirm:true applies changes.",
       "required": false,
       "sensitive": false,
-      "default": "false"
+      "default": "0"
     },
     "pinterest_environment": {
       "type": "string",

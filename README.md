@@ -32,8 +32,8 @@ Run locally with your own platform credentials and a client that supports stdio 
 
 - Add `pinterest_rename_campaign`, `pinterest_rename_adgroup` and `pinterest_rename_ad`. Each previews, then changes the name only.
 - Add the native video upload flow. `pinterest_prepare_video_upload` registers the upload, `pinterest_upload_video` sends a local file or an HTTPS URL to the destination Pinterest returns, and `pinterest_get_video_upload` reads the processing status.
-- Require an account allowlist in `PINTEREST_AD_ACCOUNT_IDS`. Requests that name another ad account are refused before they are sent.
-- Expose writes only when `PINTEREST_ENABLE_WRITES` is exactly `true`.
+- Add the optional account allowlist `PINTEREST_AD_ACCOUNT_IDS`. When it is set, requests that name another ad account are refused before they are sent, and account discovery only returns the listed accounts.
+- Deprecate `1`, `yes` and `on` for `PINTEREST_ENABLE_WRITES`. They still enable writes, with a notice on stderr. Use `true`.
 - Add timeouts and response size limits to every request. Incomplete analytics responses are refused instead of being shortened.
 - Update the MCP SDK to 1.32.1 and require a Node.js release that carries the October 2026 security fixes.
 
@@ -43,7 +43,12 @@ Run locally with your own platform credentials and a client that supports stdio 
 
 Requires **Node.js 22.23.4, 24.22.1 or 26.12.1**, or a newer release of those lines. On an older runtime the server starts and writes a warning to stderr. CI covers Node 22, 24 and 26.
 
-Set `PINTEREST_AD_ACCOUNT_IDS` to the ad accounts the server may use. Without it, `PINTEREST_AD_ACCOUNT_ID` alone is allowed, and with neither the server refuses to start. `PINTEREST_ENABLE_WRITES` now accepts only `true` or `false`, so replace `1`, `yes` or `on` with `true`. The `pinterest://attribution` resource names its default `defaultAttribution` instead of `defaults`.
+This release has no breaking change, and existing configurations keep working. Two changes are planned for 3.0.0, and the server announces each one on stderr at startup when it applies to your configuration:
+
+- `PINTEREST_AD_ACCOUNT_IDS` will be required. Set it now to restrict the server to the listed ad accounts. Until then, `PINTEREST_AD_ACCOUNT_ID` remains a default account, not a restriction.
+- `PINTEREST_ENABLE_WRITES` will accept only `true` to enable writes. Replace `1`, `yes` or `on` with `true`.
+
+The `pinterest://attribution` resource now names its default `defaultAttribution`. The former `defaults` key remains as an alias until 3.0.0.
 
 Read the current tool schemas before reusing saved arguments. Writes remain optional and require explicit confirmation. Hosted creative integrations and MCP Apps UI are outside this release.
 
@@ -143,6 +148,8 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 }
 ```
 
+`PINTEREST_AD_ACCOUNT_IDS` is optional and recommended. It restricts the server to the listed ad accounts, and version 3.0.0 will require it.
+
 Restart Claude Desktop. Ask it: *"list my Pinterest ad accounts"*.
 
 ### Claude Code
@@ -173,13 +180,14 @@ npm start
 | `PINTEREST_REFRESH_TOKEN` | none | With the two below, lets the server renew the token |
 | `PINTEREST_APP_ID` | none | App ID, needed for refresh |
 | `PINTEREST_APP_SECRET` | none | App secret, needed for refresh |
-| `PINTEREST_AD_ACCOUNT_IDS` | none | Comma-separated ad account IDs the server may use. Requests that name another account are refused |
-| `PINTEREST_AD_ACCOUNT_ID` | none | Optional default, saves passing it on every call. It must be one of the allowed accounts, and is the only allowed account when `PINTEREST_AD_ACCOUNT_IDS` is unset |
-| `PINTEREST_ENABLE_WRITES` | `false` | Set to `true` to register the 30 write tools. Values other than `true` and `false` stop the server |
+| `PINTEREST_AD_ACCOUNT_IDS` | none | Recommended. Comma-separated ad account IDs the server may use. When set, requests that name another account are refused. Version 3.0.0 will require it |
+| `PINTEREST_AD_ACCOUNT_ID` | none | Optional default, saves passing it on every call. When `PINTEREST_AD_ACCOUNT_IDS` is set, it must be one of those accounts |
+| `PINTEREST_ENABLE_WRITES` | *unset* | Set to `true` to register the 30 write tools. `1`, `yes` and `on` also work and are deprecated. An unrecognized value stops the server |
 | `PINTEREST_ENVIRONMENT` | `production` | `production` or `sandbox`, with credentials issued for that environment |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
-Either the access token, or the refresh trio. The server refuses to start with neither, and without an allowed ad account.
+Either the access token, or the refresh trio. The server refuses to start with neither.
+Without `PINTEREST_AD_ACCOUNT_IDS`, every ad account the token can access is reachable, and the server says so on stderr at startup.
 
 ```bash
 npm run doctor
@@ -335,8 +343,8 @@ Disabled by default. Calls preview unless explicitly confirmed. Check the config
 - **The token is never logged**, at any log level, or written to disk.
 - **Credentials go to the Pinterest API only**: `api.pinterest.com`, or `api-sandbox.pinterest.com`
   in sandbox mode. *A test fails the build if another host appears in the source.*
-- **Only the listed ad accounts are reachable.** A request that names an account outside
-  `PINTEREST_AD_ACCOUNT_IDS` is refused before it is sent, and discovery only returns listed accounts.
+- **`PINTEREST_AD_ACCOUNT_IDS` restricts the reachable ad accounts.** When it is set, a request that
+  names another account is refused before it is sent, and discovery only returns listed accounts.
 - **No fetch follows a redirect.** Every outbound call sets `redirect: "error"`, so a redirect
   cannot forward your token to another host. *A test fails the build if any fetch omits this.*
 - **Async report URLs are validated before being fetched.** Pinterest returns a download URL

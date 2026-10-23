@@ -15,7 +15,7 @@ export function registerPinterest(server: McpServer, config: PinterestConfig): v
   registerPinterestTools(server, config);
   registerPinterestWrites(server as never, config as never, true);
   registerPinterestSurfaceTools(server, config);
-  registerPinterestResources(server, config.enableWrites ?? false);
+  registerPinterestResources(server, config.enableWrites ?? false, Boolean(config.allowedAccountIds?.length));
   logger.info("pinterest", "Registered 29 read tools and 7 resources");
 
   if (config.enableWrites) {
