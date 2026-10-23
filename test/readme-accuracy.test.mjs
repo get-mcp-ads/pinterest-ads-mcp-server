@@ -12,7 +12,7 @@ async function introspect() {
   const transport = new StdioClientTransport({
     command: "node",
     args: ["dist/cli.js"],
-    env: { ...process.env, PINTEREST_ACCESS_TOKEN: "token-for-listing", PINTEREST_ENABLE_WRITES: "1" },
+    env: { ...process.env, PINTEREST_ACCESS_TOKEN: "token-for-listing", PINTEREST_AD_ACCOUNT_IDS: "123", PINTEREST_ENABLE_WRITES: "true" },
   });
   const client = new Client({ name: "readme-check", version: "1" }, { capabilities: {} });
   await client.connect(transport);
@@ -56,8 +56,8 @@ test("README tool counts match reality", async () => {
   const writes = definitions.filter(t => !t.annotations.readOnlyHint).map(t => t.name);
   const reads = tools.filter((t) => !writes.includes(t));
 
-  assert.equal(reads.length, 28, "read tool count changed, update the README");
-  assert.equal(writes.length, 25, "write tool count changed, update the README");
+  assert.equal(reads.length, 29, "read tool count changed, update the README");
+  assert.equal(writes.length, 30, "write tool count changed, update the README");
   assert.equal(resources.length, 7, "resource count changed, update the README");
 
   assert.match(README, new RegExp(`\\*\\*${reads.length} read tools\\*\\*`));

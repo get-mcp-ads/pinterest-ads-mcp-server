@@ -971,16 +971,19 @@ function flattenSyncResponse(payload: unknown, idParam?: string): PinterestRepor
     product_group_ids: "PRODUCT_GROUP_ID",
   };
   const entityField = idParam ? entityFieldByParam[idParam] : undefined;
-  if (Array.isArray(payload)) return payload.filter(isRecord);
-  if (!isRecord(payload)) return [];
-  if (Array.isArray(payload.items)) return payload.items.filter(isRecord);
-
+  // An incomplete reply is an error, never a silently shorter report.
+  const records = (rows: unknown[]): PinterestReportRow[] => {
+    if (rows.some((row) => !isRecord(row))) throw new PinterestMcpError("Pinterest returned an incomplete analytics row.");
+    return rows as PinterestReportRow[];
+  };
+  if (Array.isArray(payload)) return records(payload);
+  if (!isRecord(payload)) throw new PinterestMcpError("Pinterest analytics response is invalid.");
+  if (Array.isArray(payload.items)) return records(payload.items);
+  // Targeting analytics uses MetricsResponse.data, not an entity-keyed map.
+  if (Array.isArray(payload.data)) return records(payload.data);
   return Object.entries(payload).flatMap(([entityId, value]) => {
-    if (!Array.isArray(value)) return [];
-    return value.filter(isRecord).map((row) => ({
-      ...row,
-      ...(entityField && row[entityField] === undefined ? { [entityField]: entityId } : {}),
-    }));
+    if (!/^\d+$/.test(entityId) || !Array.isArray(value)) throw new PinterestMcpError("Pinterest analytics response is incomplete.");
+    return records(value).map((row) => ({ ...row, ...(entityField && row[entityField] === undefined ? { [entityField]: entityId } : {}) }));
   });
 }
 

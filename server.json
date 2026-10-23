@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.getmcpads/pinterest-ads",
   "title": "Pinterest Ads",
-  "description": "Pinterest Ads MCP server: 28 read tools, 25 opt-in preview-first writes.",
-  "version": "2.0.1",
+  "description": "Pinterest Ads MCP server: 29 read tools, 30 opt-in preview-first writes.",
+  "version": "2.1.0",
   "websiteUrl": "https://www.getmcpads.com/tools/pinterest-ads",
   "repository": {
     "url": "https://github.com/get-mcp-ads/pinterest-ads-mcp-server",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@getmcpads/pinterest-ads-mcp-server",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "transport": {
         "type": "stdio"
       },
@@ -44,20 +44,32 @@
           "isSecret": true
         },
         {
+          "name": "PINTEREST_AD_ACCOUNT_IDS",
+          "description": "Comma-separated ad account IDs this server may use. Without it, PINTEREST_AD_ACCOUNT_ID is the only allowed account.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
           "name": "PINTEREST_AD_ACCOUNT_ID",
-          "description": "Default ad account ID.",
+          "description": "Default ad account ID. It must be one of PINTEREST_AD_ACCOUNT_IDS when both are set.",
           "isRequired": false,
           "isSecret": false
         },
         {
           "name": "PINTEREST_ENABLE_WRITES",
-          "description": "Set to 1 to expose 24 write tools. Default calls preview; confirm:true applies changes.",
+          "description": "Set to true to expose 30 write tools. Default calls preview; confirm:true applies changes.",
           "isRequired": false,
           "isSecret": false
         },
         {
           "name": "PINTEREST_ENVIRONMENT",
           "description": "API environment: production (default) or sandbox. Use credentials issued for that environment.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOG_LEVEL",
+          "description": "Log level written to stderr: debug, info (default), warn or error.",
           "isRequired": false,
           "isSecret": false
         }

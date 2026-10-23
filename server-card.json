@@ -1,8 +1,8 @@
 {
   "serverInfo": {
     "name": "@getmcpads/pinterest-ads-mcp-server",
-    "title": "Pinterest Ads MCP server: 28 read tools, 25 opt-in preview-first writes.",
-    "version": "2.0.1",
+    "title": "Pinterest Ads MCP server: 29 read tools, 30 opt-in preview-first writes.",
+    "version": "2.1.0",
     "websiteUrl": "https://www.getmcpads.com/tools/pinterest-ads",
     "icons": [
       {
@@ -1105,6 +1105,77 @@
             "description": "Unique pins resolved into media URLs. Each one costs an API call, and the Pinterest app quota is tight."
           }
         },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original tool result: parsed JSON when the text is JSON, otherwise the text or multiple MCP content blocks. Provider fields depend on the selected query."
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "pinterest_get_video_upload",
+      "title": "pinterest get video upload",
+      "description": "Read processing status for this advertiser-bound uploaded video. Only ready:true permits video Pin creation; registration or HTTP 204 is insufficient.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "adAccountId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Selected Pinterest advertiser account. All requests use this account context."
+          },
+          "uploadReceipt": {
+            "type": "string",
+            "pattern": "^pinvid_[a-f0-9]{48}$",
+            "description": "Opaque receipt from pinterest_prepare_video_upload, bound to this advertiser and this video. It is kept in this server's memory and is lost when the server restarts."
+          }
+        },
+        "required": [
+          "adAccountId",
+          "uploadReceipt"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -3355,6 +3426,174 @@
       }
     },
     {
+      "name": "pinterest_prepare_video_upload",
+      "title": "pinterest prepare video upload",
+      "description": "Register a native Pinterest video upload for a local file or an HTTPS URL and keep its opaque receipt in memory before transferring bytes. Does not create a Pin or ad. Preview, confirm, upload, then check processing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "adAccountId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Selected Pinterest advertiser account. All requests use this account context."
+          },
+          "filePath": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Absolute path of a local MP4 or MOV video file. Provide filePath or sourceUrl, not both."
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 4096,
+            "description": "HTTPS URL of an MP4 or MOV video. Private, loopback and link-local addresses are refused, no redirect is followed and no credential is sent. Provide filePath or sourceUrl, not both."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Preview by default; true performs this step."
+          }
+        },
+        "required": [
+          "adAccountId"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original tool result: parsed JSON when the text is JSON, otherwise the text or multiple MCP content blocks. Provider fields depend on the selected query."
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "pinterest_upload_video",
+      "title": "pinterest upload video",
+      "description": "Stream the registered video to the native destination saved in uploadReceipt. No bearer credential is sent to storage. Does not register another media or activate advertising. Follow with pinterest_get_video_upload.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "adAccountId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Selected Pinterest advertiser account. All requests use this account context."
+          },
+          "filePath": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Absolute path of a local MP4 or MOV video file. Provide filePath or sourceUrl, not both."
+          },
+          "sourceUrl": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 4096,
+            "description": "HTTPS URL of an MP4 or MOV video. Private, loopback and link-local addresses are refused, no redirect is followed and no credential is sent. Provide filePath or sourceUrl, not both."
+          },
+          "uploadReceipt": {
+            "type": "string",
+            "pattern": "^pinvid_[a-f0-9]{48}$",
+            "description": "Opaque receipt from pinterest_prepare_video_upload, bound to this advertiser and this video. It is kept in this server's memory and is lost when the server restarts."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Preview by default; true performs this step."
+          }
+        },
+        "required": [
+          "adAccountId",
+          "uploadReceipt"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original tool result: parsed JSON when the text is JSON, otherwise the text or multiple MCP content blocks. Provider fields depend on the selected query."
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "pinterest_create_campaign",
       "title": "pinterest create campaign",
       "description": "Create a PAUSED campaign. Monetary convenience fields use the account currency. Campaign Budget Optimization defaults to true; non-CBO eligibility is account-specific. Preview by default. No automatic mutation retry. Native API eligibility and scopes still apply.",
@@ -4077,6 +4316,252 @@
           "adAccountId",
           "adId",
           "configuration"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original tool result: parsed JSON when the text is JSON, otherwise the text or multiple MCP content blocks. Provider fields depend on the selected query."
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "pinterest_rename_campaign",
+      "title": "pinterest rename campaign",
+      "description": "Rename one campaign. The name is the only thing that changes. Preview by default. No automatic mutation retry. Native API eligibility and scopes still apply.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "adAccountId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Selected Pinterest advertiser account. All requests use this account context."
+          },
+          "campaignId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Numeric Pinterest entity ID in the selected advertiser context."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "New campaign name, up to 255 characters."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Only true applies the displayed change. Omit for a local preview."
+          }
+        },
+        "required": [
+          "adAccountId",
+          "campaignId",
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original tool result: parsed JSON when the text is JSON, otherwise the text or multiple MCP content blocks. Provider fields depend on the selected query."
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "pinterest_rename_adgroup",
+      "title": "pinterest rename adgroup",
+      "description": "Rename one ad group. The name is the only thing that changes. Preview by default. No automatic mutation retry. Native API eligibility and scopes still apply.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "adAccountId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Selected Pinterest advertiser account. All requests use this account context."
+          },
+          "adGroupId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Numeric Pinterest entity ID in the selected advertiser context."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "New ad group name, up to 255 characters."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Only true applies the displayed change. Omit for a local preview."
+          }
+        },
+        "required": [
+          "adAccountId",
+          "adGroupId",
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Original tool result: parsed JSON when the text is JSON, otherwise the text or multiple MCP content blocks. Provider fields depend on the selected query."
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "pinterest_rename_ad",
+      "title": "pinterest rename ad",
+      "description": "Rename one ad. The name is the only thing that changes. Preview by default. No automatic mutation retry. Native API eligibility and scopes still apply.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "adAccountId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Selected Pinterest advertiser account. All requests use this account context."
+          },
+          "adId": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Numeric Pinterest entity ID in the selected advertiser context."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "New ad name, up to 255 characters."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Only true applies the displayed change. Omit for a local preview."
+          }
+        },
+        "required": [
+          "adAccountId",
+          "adId",
+          "name"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
