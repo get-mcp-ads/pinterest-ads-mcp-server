@@ -1261,7 +1261,7 @@ const AWARENESS_METRICS: PinterestMetricDefinition[] = [
 ];
 
 // ============================================
-// CALCULATED METRICS (Benly Custom)
+// CALCULATED METRICS
 // ============================================
 
 const CALCULATED_METRICS: PinterestMetricDefinition[] = [

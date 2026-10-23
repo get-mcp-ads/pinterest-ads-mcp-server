@@ -29,6 +29,8 @@ test("Pinterest Ads MCP exposes core tools and resources over stdio", async () =
     env: cleanEnv({
       PINTEREST_ACCESS_TOKEN: "test-access-token",
       PINTEREST_AD_ACCOUNT_ID: "123456789",
+      PINTEREST_AD_ACCOUNT_IDS: "123456789",
+      PINTEREST_ENABLE_WRITES: "false",
       LOG_LEVEL: "error",
     }),
     stderr: "pipe",
@@ -39,7 +41,7 @@ test("Pinterest Ads MCP exposes core tools and resources over stdio", async () =
     const tools = await client.listTools(undefined, { timeout: 15000 });
     const toolNames = tools.tools.map((tool) => tool.name);
 
-    assert.equal(toolNames.length, 28);
+    assert.equal(toolNames.length, 29);
 
     for (const name of [
       "pinterest_health_check",
@@ -58,6 +60,7 @@ test("Pinterest Ads MCP exposes core tools and resources over stdio", async () =
       "pinterest_get_business_assets",
       "pinterest_get_pin_analytics",
       "pinterest_get_trends",
+      "pinterest_get_video_upload",
     ]) {
       assert.ok(toolNames.includes(name), `missing tool ${name}`);
     }
@@ -65,6 +68,7 @@ test("Pinterest Ads MCP exposes core tools and resources over stdio", async () =
     const businessTool = tools.tools.find((tool) => tool.name === "pinterest_get_business_assets");
     assert.equal(businessTool.inputSchema.properties.allowCrossBusinessRead.default, false);
     assert.equal(businessTool.inputSchema.properties.includePersonalIdentifiers.default, false);
+    assert.ok(!toolNames.some((name) => name.startsWith("pinterest_rename_") || name === "pinterest_upload_video"), "writes must stay hidden without PINTEREST_ENABLE_WRITES=true");
 
     const resources = await client.listResources(undefined, { timeout: 15000 });
     const resourceUris = resources.resources.map((resource) => resource.uri);

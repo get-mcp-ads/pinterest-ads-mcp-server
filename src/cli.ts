@@ -8,8 +8,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { loadConfig } from "./config.js";
 import { createServer } from "./server.js";
 import { logger } from "./core/logger.js";
+import { nodeRuntimeWarning } from "./runtime-check.js";
 
 async function main(): Promise<void> {
+  // stdout carries the MCP protocol, so the warning goes to stderr only.
+  const runtimeWarning = nodeRuntimeWarning();
+  if (runtimeWarning) process.stderr.write(`[pinterest-ads-mcp] WARN runtime: ${runtimeWarning}\n`);
   try {
     const config = loadConfig();
     logger.setLevel(config.logLevel);

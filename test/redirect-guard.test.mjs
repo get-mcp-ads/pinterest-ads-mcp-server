@@ -59,3 +59,13 @@ test("the only host this server can reach is Pinterest", () => {
     "A new outbound host appeared. That is a deliberate decision, not an accident.",
   );
 });
+
+test("hosts are listed in one place, including the video upload destination", () => {
+  const offenders = [];
+  for (const file of sourceFiles()) {
+    if (file === "src/core/hosts.ts" || file.endsWith(".generated.ts")) continue;
+    const text = readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+    if (/amazonaws|https:\/\/api(-sandbox)?\.pinterest\.com/.test(text)) offenders.push(file);
+  }
+  assert.deepEqual(offenders, [], `Declare outbound hosts in src/core/hosts.ts only: ${offenders.join(", ")}`);
+});

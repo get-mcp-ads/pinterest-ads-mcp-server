@@ -15,11 +15,11 @@ export function registerPinterest(server: McpServer, config: PinterestConfig): v
   registerPinterestTools(server, config);
   registerPinterestWrites(server as never, config as never, true);
   registerPinterestSurfaceTools(server, config);
-  registerPinterestResources(server, config.enableWrites ?? false);
-  logger.info("pinterest", "Registered 28 read tools and 7 resources");
+  registerPinterestResources(server, config.enableWrites ?? false, Boolean(config.allowedAccountIds?.length));
+  logger.info("pinterest", "Registered 29 read tools and 7 resources");
 
   if (config.enableWrites) {
     registerPinterestWrites(server as never, config as never);
-    logger.info("pinterest", "Registered 25 write tools (every one previews before it applies)");
+    logger.info("pinterest", "Registered 30 write tools (every one previews before it applies)");
   }
 }

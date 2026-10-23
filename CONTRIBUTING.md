@@ -18,7 +18,7 @@ Then run the checks:
 npm run typecheck && npm run lint && npm test && npm run build
 ```
 
-All four must pass. CI runs them on Node 22 and 24.
+All four must pass. CI runs them on Node 22, 24 and 26.
 
 ## Ground rules
 
@@ -55,8 +55,9 @@ and `zod`. Adding a third needs a good reason.
 ## Credentials never reach the logs or another host
 
 Two tests enforce this: one fails if any `fetch` omits `redirect: "error"`, and
-one fails if a host other than `api.pinterest.com` appears in the source. Both
-are load-bearing, not decoration.
+one fails if a host other than the Pinterest API hosts listed in
+`src/core/hosts.ts` appears in the source. Both are load-bearing, not
+decoration.
 
 ## Commit and PR style
 

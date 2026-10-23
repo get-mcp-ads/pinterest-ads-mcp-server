@@ -6,6 +6,7 @@ import type { ToolShape } from "../../tool-quality.js";
 import { PinterestClient } from "./client.js";
 import type { PinterestConfig } from "../../config.js";
 import { toMicroCurrency } from "../../core/money.js";
+import { registerPinterestVideoUploads } from "./video-upload.js";
 import * as validators from "./generated/pinterest/validators.js";
 import schemas from "./generated/pinterest/write-schemas.json";
 
@@ -63,6 +64,8 @@ export const PINTEREST_EXTENDED_WRITES = new Set([
   "pinterest_create_pin",
   "pinterest_update_pin",
   "pinterest_register_media",
+  "pinterest_prepare_video_upload",
+  "pinterest_upload_video",
   "pinterest_create_catalog",
   "pinterest_create_catalog_feed",
   "pinterest_update_catalog_feed",
@@ -152,6 +155,7 @@ export function registerPinterestWrites(
   readOnly = false,
 ): void {
   const api = new PinterestClient(config);
+  registerPinterestVideoUploads(c, config, readOnly);
   if (readOnly) {
     c.tool(
       "pinterest_get_write_schema",
@@ -228,6 +232,8 @@ export function registerPinterestWrites(
       async (raw) => {
         try {
           const a = schema.parse(raw);
+          // The account allowlist applies to previews too, before any network call.
+          api.assertAllowedRequest(adPath(a, ""));
           const p = build(a);
           if (p.schema === "CampaignUpdateRequest")
             p.payload.ad_account_id = a.adAccountId;
@@ -567,6 +573,25 @@ export function registerPinterestWrites(
           scope: () => owned(a, entity, a[param]),
         };
       },
+    );
+  }
+  for (const [entity, param, request, tool, label] of [
+    ["campaigns", "campaignId", "CampaignUpdateRequest", "pinterest_rename_campaign", "campaign"],
+    ["ad_groups", "adGroupId", "AdGroupUpdateRequest", "pinterest_rename_adgroup", "ad group"],
+    ["ads", "adId", "AdUpdateRequest", "pinterest_rename_ad", "ad"],
+  ] as const) {
+    register(
+      tool,
+      `Rename one ${label}. The name is the only thing that changes.`,
+      { [param]: id, name: z.string().trim().min(1).max(255).describe(`New ${label} name, up to 255 characters.`) },
+      (a) => ({
+        path: adPath(a, entity),
+        method: "PATCH",
+        schema: request,
+        batch: true,
+        payload: { id: a[param], name: a.name },
+        scope: () => owned(a, entity, a[param]),
+      }),
     );
   }
   register(

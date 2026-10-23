@@ -10,7 +10,7 @@ Explore reporting, audiences, catalogs and native campaign operations from your 
 [![CI](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/actions/workflows/ci.yml)
 [![Smithery](https://smithery.ai/badge/getmcpads/getmcpads-pinterest-ads)](https://smithery.ai/servers/getmcpads/getmcpads-pinterest-ads)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%E2%89%A522.12-brightgreen.svg)](package.json)
+[![Node](https://img.shields.io/badge/node-22.23.4%20%7C%2024.22.1%20%7C%2026.12.1-brightgreen.svg)](package.json)
 
 [Watch the film](https://www.getmcpads.com/home/film/get-mcp-ads-brand-film-1080p.mp4) · [What's new](#whats-new) · [Install](#install-this-release) · [Tool reference](#tools) · [Try hosted getmcpads](https://www.getmcpads.com/tools/pinterest-ads?utm_source=github&utm_medium=readme&utm_campaign=pinterest-ads)
 
@@ -22,32 +22,63 @@ Explore reporting, audiences, catalogs and native campaign operations from your 
 
 The film shows hosted getmcpads with sample data. Its MCP Apps, from creative galleries and alerts to Google Sheets exports and bulk launches, belong to the hosted product. This repository provides the standalone native API tools.
 
-**28 read tools** · **25 write tools**, disabled by default.
+**29 read tools** · **30 write tools**, disabled by default.
 
 Run locally with your own platform credentials and a client that supports stdio MCP, such as Claude Desktop, Claude Code or Cursor. Your requests go directly to the platform. For managed connections, including supported ChatGPT setups, use the hosted option.
 
 ## What's new
 
-**[v2.0.1: Native tools and security update](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases/tag/v2.0.1) · September 20, 2026**
+<!-- release-history:start -->
+**[v2.1.0: Rename tools and native video uploads](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases/tag/v2.1.0) · October 23, 2026**
 
-- Update native campaign/ad-group validation, budget ownership and exact readback checks.
-- Add the native collection-ad tool and preserve private report URL and redirect guards.
-- Exclude hosted frozen-file video upload workflows.
-- Require Node.js 22.12 or newer and check Node 22/24 in CI.
-- Update vulnerable dependencies and regenerate the MCP catalog.
+- Add `pinterest_rename_campaign`, `pinterest_rename_adgroup` and `pinterest_rename_ad`. Each previews, then changes the name only.
+- Add the native video upload flow: `pinterest_prepare_video_upload`, `pinterest_upload_video` and `pinterest_get_video_upload`. The video comes from a local file or an HTTPS URL that passes the report URL checks, and goes to the upload destination Pinterest returns, without the access token.
+- Add the optional account allowlist `PINTEREST_AD_ACCOUNT_IDS`. When it is set, requests that name another ad account are refused before they are sent, and account discovery only returns listed accounts. When it is unset, the server writes a notice to stderr at startup, and `PINTEREST_AD_ACCOUNT_ID` remains a default account as in 2.0.
+- Deprecate `1`, `yes` and `on` for `PINTEREST_ENABLE_WRITES`. They still enable writes, with a notice on stderr. Unrecognized values now stop the server at startup instead of silently disabling writes.
+- Refuse incomplete sync analytics responses and read targeting analytics from `MetricsResponse.data`.
+- Rename the attribution default in `pinterest://attribution` to `defaultAttribution`. The former `defaults` key remains as an alias.
+- Add timeouts and response size limits to every Pinterest request, and redact the access token from provider error text.
+- Update `@modelcontextprotocol/sdk` to 1.32.1 and regenerate the lockfile. `npm audit --omit=dev` reports no vulnerabilities.
+- Require Node.js 22.23.4, 24.22.1, 26.12.1 or a newer release. The server writes a warning to stderr on an older runtime, and `npm run doctor` reports it.
+- Publish releases from version tags with `release.yml`, which replaces `publish-mcp.yml`. CI covers Node 22, 24 and 26 and audits runtime dependencies. Dependabot proposes updates weekly.
+- Expose 29 read tools and 30 write tools.
+- No breaking change. Version 3.0.0 will require `PINTEREST_AD_ACCOUNT_IDS` and will accept only `true` to enable writes.
 
-[Full changelog](CHANGELOG.md) · [Source synchronization details](SOURCE_SYNC.md) · [All releases](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases)
+**Earlier releases**
+
+| Version | Date | Highlights |
+| --- | --- | --- |
+| 2.0.1 | September 23, 2026 | Public repository restored |
+| 2.0.0 | September 20, 2026 | Gateway sync and security fixes |
+| 1.1.0 | September 13, 2026 | Platform capability sync and quality contracts |
+| 1.0.2 | August 30, 2026 | Announce the package version over MCP. |
+| 1.0.1 | August 30, 2026 | Add `server.json` and `mcpName` for the official MCP Registry, under `com.getmcpads/pinterest-ads`. |
+| 1.0.0 | August 29, 2026 | First open-source release |
+
+[Full changelog](CHANGELOG.md) · [All releases](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases)
+<!-- release-history:end -->
+
+Source synchronization: [SOURCE_SYNC.md](SOURCE_SYNC.md).
 
 ### Upgrade notes
 
-Requires **Node.js 22.12 or newer**. CI covers Node 22 and 24. Version 2.0.1 drops Node 18 and 20 support. Read the current tool schemas before reusing saved arguments. Writes remain optional and require explicit confirmation. Hosted creative integrations and MCP Apps UI are outside this release.
+Requires **Node.js 22.23.4, 24.22.1 or 26.12.1**, or a newer release of those lines. On an older runtime the server starts and writes a warning to stderr. CI covers Node 22, 24 and 26.
+
+This release has no breaking change, and existing configurations keep working. Two changes are planned for 3.0.0, and the server announces each one on stderr at startup when it applies to your configuration:
+
+- `PINTEREST_AD_ACCOUNT_IDS` will be required. Set it now to restrict the server to the listed ad accounts. Until then, `PINTEREST_AD_ACCOUNT_ID` remains a default account, not a restriction.
+- `PINTEREST_ENABLE_WRITES` will accept only `true` to enable writes. Replace `1`, `yes` or `on` with `true`.
+
+The `pinterest://attribution` resource now names its default `defaultAttribution`. The former `defaults` key remains as an alias until 3.0.0.
+
+Read the current tool schemas before reusing saved arguments. Writes remain optional and require explicit confirmation. Hosted creative integrations and MCP Apps UI are outside this release.
 
 ## Install this release
 
 This is a GitHub source release. npm and MCP Registry versions are published separately. The commands below select this exact version; unpinned `npx` examples later in this document select the version currently available on npm.
 
 ```bash
-git clone --branch v2.0.1 --depth 1 https://github.com/get-mcp-ads/pinterest-ads-mcp-server.git
+git clone --branch v2.1.0 --depth 1 https://github.com/get-mcp-ads/pinterest-ads-mcp-server.git
 cd pinterest-ads-mcp-server
 npm ci
 npm run build
@@ -61,8 +92,8 @@ Configure your MCP client to run `node` with the absolute path to `dist/cli.js` 
 
 | | |
 |---|---|
-| **28 read tools** | Reporting, campaigns and ad groups, audiences, targeting, keywords, conversions, catalogs, business assets, billing, Pins and trends |
-| **25 write tools** | Off by default. Campaign and ad group status and budgets, campaign creation. Each one **previews before it applies** |
+| **29 read tools** | Reporting, campaigns and ad groups, audiences, targeting, keywords, conversions, catalogs, business assets, billing, Pins, trends and video processing status |
+| **30 write tools** | Off by default. Create paused campaigns, ad groups and ads, and change their status, budgets, settings and names. Upload videos and manage boards, Pins and catalogs. Each one **previews before it applies** |
 | **7 resources** | Live catalogues the model can read: reporting columns, attribution windows, creative assets, catalog reporting, surface map, recipes |
 | **Organic alongside paid** | Pin analytics and trends, not just the ad account |
 | **Privacy by construction** | Lead records are not exposed at all, and member identifiers are redacted by default |
@@ -130,19 +161,22 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
       "command": "npx",
       "args": ["-y", "@getmcpads/pinterest-ads-mcp-server"],
       "env": {
-        "PINTEREST_ACCESS_TOKEN": "your-token-here"
+        "PINTEREST_ACCESS_TOKEN": "your-token-here",
+        "PINTEREST_AD_ACCOUNT_IDS": "your-ad-account-id"
       }
     }
   }
 }
 ```
 
+`PINTEREST_AD_ACCOUNT_IDS` is optional and recommended. It restricts the server to the listed ad accounts, and version 3.0.0 will require it.
+
 Restart Claude Desktop. Ask it: *"list my Pinterest ad accounts"*.
 
 ### Claude Code
 
 ```bash
-claude mcp add pinterest-ads --env PINTEREST_ACCESS_TOKEN=your-token -- npx -y @getmcpads/pinterest-ads-mcp-server
+claude mcp add pinterest-ads --env PINTEREST_ACCESS_TOKEN=your-token --env PINTEREST_AD_ACCOUNT_IDS=your-ad-account-id -- npx -y @getmcpads/pinterest-ads-mcp-server
 ```
 
 ### Cursor
@@ -167,11 +201,14 @@ npm start
 | `PINTEREST_REFRESH_TOKEN` | none | With the two below, lets the server renew the token |
 | `PINTEREST_APP_ID` | none | App ID, needed for refresh |
 | `PINTEREST_APP_SECRET` | none | App secret, needed for refresh |
-| `PINTEREST_AD_ACCOUNT_ID` | none | Optional default, saves passing it on every call |
-| `PINTEREST_ENABLE_WRITES` | *unset* | Set to `1` to register the 25 write tools |
+| `PINTEREST_AD_ACCOUNT_IDS` | none | Recommended. Comma-separated ad account IDs the server may use. When set, requests that name another account are refused. Version 3.0.0 will require it |
+| `PINTEREST_AD_ACCOUNT_ID` | none | Optional default, saves passing it on every call. When `PINTEREST_AD_ACCOUNT_IDS` is set, it must be one of those accounts |
+| `PINTEREST_ENABLE_WRITES` | *unset* | Set to `true` to register the 30 write tools. `1`, `yes` and `on` also work and are deprecated. An unrecognized value stops the server |
+| `PINTEREST_ENVIRONMENT` | `production` | `production` or `sandbox`, with credentials issued for that environment |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
 Either the access token, or the refresh trio. The server refuses to start with neither.
+Without `PINTEREST_AD_ACCOUNT_IDS`, every ad account the token can access is reachable, and the server says so on stderr at startup.
 
 ```bash
 npm run doctor
@@ -181,7 +218,7 @@ npm run doctor
 
 ## Writes, and why they preview first
 
-Write tools are **disabled by default**. Enable them with `PINTEREST_ENABLE_WRITES=1`, and
+Write tools are **disabled by default**. Enable them with `PINTEREST_ENABLE_WRITES=true`, and
 grant `ads:write` on top of `ads:read`.
 
 When enabled, every write tool returns a preview and changes nothing:
@@ -219,6 +256,8 @@ Two further guardrails:
 | `pinterest_update_campaign_status` / `pinterest_update_adgroup_status` | Pause, reactivate or archive |
 | `pinterest_update_campaign_budget` / `pinterest_update_adgroup_budget` | Daily or lifetime budget |
 | `pinterest_create_campaign` | Creates a campaign, always `PAUSED` |
+| `pinterest_rename_campaign` / `pinterest_rename_adgroup` / `pinterest_rename_ad` | The name, and nothing else |
+| `pinterest_prepare_video_upload` / `pinterest_upload_video` | Registers a video, then sends it to the upload destination Pinterest returns |
 
 ---
 
@@ -227,7 +266,7 @@ Two further guardrails:
 Every tool is listed below. See [server-card.json](server-card.json) for complete parameter and output schemas.
 
 <details>
-<summary><b>28 read tools</b></summary>
+<summary><b>29 read tools</b></summary>
 
 | Tool | Purpose |
 | --- | --- |
@@ -259,11 +298,12 @@ Every tool is listed below. See [server-card.json](server-card.json) for complet
 | `pinterest_get_organic_inventory` | Read organic Pinterest content used alongside ads: Pins, boards, Pins on a board, Pin product tags, or search results. |
 | `pinterest_get_trends` | Read Pinterest Trends: top growing/monthly/yearly/seasonal keywords by supported region, growing product categories, product-category details, featured topics, or editorial articles. |
 | `pinterest_get_platform_resources` | Read Pinterest platform metadata and readiness resources: supported ad-account countries, delivery metric definitions, metrics readiness, lead-form questions, media upload metadata, commerce integration metadata, or the authenticated user account. |
+| `pinterest_get_video_upload` | Read processing status for this advertiser-bound uploaded video. Only ready:true permits video Pin creation. |
 
 </details>
 
 <details>
-<summary><b>25 write tools</b></summary>
+<summary><b>30 write tools</b></summary>
 
 Disabled by default. Calls preview unless explicitly confirmed. Check the configuration and exact schema before use.
 
@@ -278,6 +318,9 @@ Disabled by default. Calls preview unless explicitly confirmed. Check the config
 | `pinterest_update_campaign_configuration` | Update native campaign settings. |
 | `pinterest_update_adgroup_configuration` | Update native ad group settings. |
 | `pinterest_update_ad` | Update native ad settings. |
+| `pinterest_rename_campaign` | Rename one campaign. The name is the only thing that changes. |
+| `pinterest_rename_adgroup` | Rename one ad group. The name is the only thing that changes. |
+| `pinterest_rename_ad` | Rename one ad. The name is the only thing that changes. |
 | `pinterest_create_adgroup` | Create a PAUSED ad group with explicit native bidding, targeting, budget and schedule. |
 | `pinterest_create_ad` | Create a PAUSED ad from an accessible Pin. |
 | `pinterest_create_product_group_promotion` | Create a PAUSED shopping or collections promotion from a catalog product group. |
@@ -288,6 +331,8 @@ Disabled by default. Calls preview unless explicitly confirmed. Check the config
 | `pinterest_create_pin` | Create /pins in the selected advertiser context. |
 | `pinterest_update_pin` | Update a Pin. |
 | `pinterest_register_media` | Register media upload; returned upload_url/parameters are not confirmation that a video is uploaded or ready. |
+| `pinterest_prepare_video_upload` | Register a native Pinterest video upload for a local file or an HTTPS URL and keep its opaque receipt in memory. |
+| `pinterest_upload_video` | Stream the registered video to the native destination saved in uploadReceipt, without the Pinterest access token. |
 | `pinterest_create_catalog` | Create /catalogs in the selected advertiser context. |
 | `pinterest_create_catalog_feed` | Create /catalogs/feeds in the selected advertiser context. |
 | `pinterest_update_catalog_feed` | Update /catalogs/feeds in the selected advertiser context. |
@@ -317,14 +362,20 @@ Disabled by default. Calls preview unless explicitly confirmed. Check the config
 ## Security
 
 - **The token is never logged**, at any log level, or written to disk.
-- **One host is contacted, and only one**: `api.pinterest.com`. *A test fails the build if a
-  second host appears in the source.*
+- **Credentials go to the Pinterest API only**: `api.pinterest.com`, or `api-sandbox.pinterest.com`
+  in sandbox mode. *A test fails the build if another host appears in the source.*
+- **`PINTEREST_AD_ACCOUNT_IDS` restricts the reachable ad accounts.** When it is set, a request that
+  names another account is refused before it is sent, and discovery only returns listed accounts.
 - **No fetch follows a redirect.** Every outbound call sets `redirect: "error"`, so a redirect
   cannot forward your token to another host. *A test fails the build if any fetch omits this.*
 - **Async report URLs are validated before being fetched.** Pinterest returns a download URL
   on a host it chooses; that value is data from the API, not something to trust. HTTPS only,
   no private or loopback address, no redirect, and no credential attached.
-- **No telemetry.** The server makes no network call other than to Pinterest.
+- **Video uploads go to the destination Pinterest returns**, an Amazon S3 host checked before use,
+  with signed form fields and never the access token. A video URL you pass gets the same checks
+  as a report URL. Every request has a timeout and a response size limit.
+- **No telemetry.** Outside the Pinterest API, the server only contacts the report and upload
+  URLs that Pinterest returns, and a video URL that you pass to the upload tools.
 
 Full policy, including how personal data is handled: [SECURITY.md](SECURITY.md).
 

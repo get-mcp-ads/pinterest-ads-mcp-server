@@ -6,7 +6,8 @@
 import { pinterestApiBase } from "../../config.js";
 import type { PinterestConfig } from "../../config.js";
 import { PinterestMcpError } from "../../core/errors.js";
-import { NO_REDIRECT, refuseRedirect } from "../../core/redirects.js";
+import { refuseRedirect } from "../../core/redirects.js";
+import { PINTEREST_API_BASES } from "../../core/hosts.js";
 import type {
   PinterestAd,
   PinterestAdAccount,
@@ -23,36 +24,106 @@ import type {
 
 
 
+/** Bounds for every response body read by this client. */
+const API_TIMEOUT_MS = 60_000;
+const TOKEN_TIMEOUT_MS = 30_000;
+const REPORT_TIMEOUT_MS = 120_000;
+const MAX_API_RESPONSE_BYTES = 25 * 1024 * 1024;
+const MAX_ERROR_RESPONSE_BYTES = 1024 * 1024;
+const MAX_REPORT_BYTES = 100 * 1024 * 1024;
+
 /**
- * Refuse a report URL that points at the machine running this server or at a
- * private network. A crafted or mistaken value must not become a request to
- * localhost or to a cloud metadata endpoint.
+ * Refuse a URL returned by the API, or named by the caller, that points at the
+ * machine running this server or at a private network. A crafted or mistaken
+ * value must not become a request to localhost or to a cloud metadata endpoint.
  */
-export function assertSafeReportUrl(rawUrl: string): void {
+export function assertSafeReportUrl(rawUrl: string, label = "Report URL"): void {
   let url: URL;
   try {
     url = new URL(rawUrl);
   } catch {
-    throw new PinterestMcpError(`Report URL is not a valid URL: ${rawUrl.slice(0, 120)}`, 400, "invalid_report_url");
+    throw new PinterestMcpError(`${label} is not a valid URL: ${String(rawUrl).slice(0, 120)}`, 400, "invalid_report_url");
   }
   if (url.protocol !== "https:") {
-    throw new PinterestMcpError(`Report URL must use https, received ${url.protocol}`, 400, "invalid_report_url");
+    throw new PinterestMcpError(`${label} must use https, received ${url.protocol}`, 400, "invalid_report_url");
   }
-  const host = url.hostname.toLowerCase();
+  if (url.username || url.password) {
+    throw new PinterestMcpError(`${label} must not embed credentials.`, 400, "invalid_report_url");
+  }
+  const host = url.hostname.toLowerCase().replace(/\.$/, "");
   const isPrivate =
     host === "localhost" ||
-    host === "0.0.0.0" ||
+    host === "metadata" ||
     host.endsWith(".localhost") ||
     host.endsWith(".internal") ||
+    host.endsWith(".local") ||
+    /^0\./.test(host) ||
     /^127\./.test(host) ||
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+    /^(22[4-9]|2[3-5]\d)\./.test(host) ||
     host.startsWith("[");
   if (isPrivate) {
-    throw new PinterestMcpError(`Report URL points at a private address: ${host}`, 400, "invalid_report_url");
+    throw new PinterestMcpError(`${label} points at a private address: ${host}`, 400, "invalid_report_url");
   }
+}
+
+/** Read at most `limit` bytes of a response body, so an oversized reply cannot exhaust memory. */
+export async function readBoundedText(response: Response, limit: number): Promise<string> {
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > limit) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new PinterestMcpError(`Pinterest response exceeds the ${limit} byte limit.`, 413, "response_too_large");
+  }
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel().catch(() => undefined);
+      throw new PinterestMcpError(`Pinterest response exceeds the ${limit} byte limit.`, 413, "response_too_large");
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
+async function readBoundedJson<T>(response: Response, limit: number): Promise<T> {
+  return JSON.parse(await readBoundedText(response, limit)) as T;
+}
+
+/** Ad account IDs named by a request: in the path, the ad_account_id parameter or the body. */
+export function requestedAdAccountIds(endpoint: string, body?: unknown): string[] {
+  const [path, query = ""] = endpoint.split("?", 2);
+  const ids: string[] = [];
+  const inPath = /^\/ad_accounts\/([^/]+)/.exec(path);
+  if (inPath) {
+    try { ids.push(decodeURIComponent(inPath[1])); } catch { ids.push(inPath[1]); }
+  }
+  ids.push(...new URLSearchParams(query).getAll("ad_account_id"));
+  const visit = (value: unknown, depth: number): void => {
+    if (depth > 3 || !value || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, depth + 1));
+      return;
+    }
+    const record = value as Record<string, unknown>;
+    if (typeof record.ad_account_id === "string" || typeof record.ad_account_id === "number") ids.push(String(record.ad_account_id));
+    for (const nested of Object.values(record)) if (nested && typeof nested === "object") visit(nested, depth + 1);
+  };
+  let parsed = body;
+  if (typeof body === "string") {
+    try { parsed = JSON.parse(body); } catch { parsed = undefined; }
+  }
+  visit(parsed, 0);
+  return ids;
 }
 
 export class PinterestClient {
@@ -62,8 +133,26 @@ export class PinterestClient {
     this.accessToken = config.accessToken;
   }
 
+  /** Account discovery only returns the accounts listed in PINTEREST_AD_ACCOUNT_IDS. */
   async getAdAccounts(bookmark?: string): Promise<PinterestListResponse<PinterestAdAccount>> {
-    return this.requestWithParams("/ad_accounts", { page_size: 250, bookmark });
+    const page = await this.requestWithParams<PinterestListResponse<PinterestAdAccount>>("/ad_accounts", { page_size: 250, bookmark });
+    const allowed = this.config.allowedAccountIds;
+    if (!allowed || !Array.isArray(page.items)) return page;
+    return { ...page, items: page.items.filter((account) => allowed.includes(String(account.id))) };
+  }
+
+  /** Refuse, before any network call, a request that names an ad account outside the allowlist. */
+  assertAllowedRequest(endpoint: string, body?: unknown): void {
+    const allowed = this.config.allowedAccountIds;
+    if (!allowed) return;
+    const refused = requestedAdAccountIds(endpoint, body).filter((id) => !allowed.includes(id));
+    if (refused.length) {
+      throw new PinterestMcpError(
+        `Ad account ${refused[0]} is not in PINTEREST_AD_ACCOUNT_IDS. Add it there and restart the server to allow it.`,
+        403,
+        "account_not_allowed",
+      );
+    }
   }
 
   async getAllAdAccounts(): Promise<PinterestAdAccount[]> {
@@ -242,11 +331,12 @@ export class PinterestClient {
    */
   async downloadJsonReport(url: string): Promise<PinterestReportRow[]> {
     assertSafeReportUrl(url);
-    const response = await fetch(url, { redirect: "error" });
+    const response = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(REPORT_TIMEOUT_MS) });
     if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
       throw new PinterestMcpError(`Failed to download Pinterest report: ${response.statusText}`, response.status);
     }
-    const payload = await response.json();
+    const payload = await readBoundedJson<unknown>(response, MAX_REPORT_BYTES);
     return flattenReportRows(payload).map(normalizeCurrencyFields);
   }
 
@@ -265,7 +355,7 @@ export class PinterestClient {
     // Sandbox does not support Business Access delegation. Organic/catalog endpoints
     // operate on the Sandbox token owner; advertiser endpoints retain their account path.
     if (this.config.environment !== "sandbox" || !/^\/(pins|boards|catalogs)(\/|\?|$)/.test(endpoint)) return endpoint;
-    const url = new URL(endpoint, "https://api-sandbox.pinterest.com");
+    const url = new URL(endpoint, PINTEREST_API_BASES.sandbox);
     url.searchParams.delete("ad_account_id");
     return url.pathname + url.search;
   }
@@ -274,6 +364,7 @@ export class PinterestClient {
   async mutate(endpoint: string, method: "POST" | "PATCH" | "DELETE", body?: unknown): Promise<unknown> {
     assertApiPath(endpoint);
     assertNoPinterestCredentials(body);
+    this.assertAllowedRequest(endpoint, body);
     const token = await this.ensureAccessToken();
     let response: Response;
     try {
@@ -287,13 +378,14 @@ export class PinterestClient {
       throw new Error("Pinterest mutation outcome unknown. Read the account before retrying; do not create a duplicate.");
     }
     if (response.status === 204) return {};
-    const data = await response.json().catch(() => null) as Record<string, unknown> | null;
+    const data = await readBoundedJson<Record<string, unknown> | null>(response, MAX_API_RESPONSE_BYTES).catch(() => null);
     if (!data || response.status >= 500) throw new Error("Pinterest mutation outcome unknown. Read the account before retrying.");
     if (!response.ok) throw new Error(`Pinterest HTTP ${response.status}: ${String(data.message ?? "mutation rejected").replaceAll(token, "[redacted]").slice(0,500)}`);
     return data;
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}, didRefresh = false, retryAttempt = 0): Promise<T> {
+    this.assertAllowedRequest(endpoint, options.body);
     const token = await this.ensureAccessToken();
     const method = String(options.method || "GET").toUpperCase();
     let response: Response;
@@ -301,6 +393,7 @@ export class PinterestClient {
       response = await fetch(`${pinterestApiBase(this.config)}${this.endpointForEnvironment(endpoint)}`, {
         ...options,
         redirect: "error",
+        signal: options.signal ?? AbortSignal.timeout(API_TIMEOUT_MS),
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -329,15 +422,15 @@ export class PinterestClient {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({})) as Record<string, unknown>;
+      const error = await readBoundedJson<Record<string, unknown>>(response, MAX_ERROR_RESPONSE_BYTES).catch(() => ({} as Record<string, unknown>));
       throw new PinterestMcpError(
-        typeof error.message === "string" ? error.message : `Pinterest API request failed: ${response.statusText}`,
+        typeof error.message === "string" ? redactToken(error.message, token) : `Pinterest API request failed: ${response.statusText}`,
         response.status,
         typeof error.status === "string" ? error.status : undefined
       );
     }
 
-    return response.json() as Promise<T>;
+    return readBoundedJson<T>(response, MAX_API_RESPONSE_BYTES);
   }
 
   private async requestWithParams<T>(endpoint: string, params: Record<string, unknown>): Promise<T> {
@@ -370,6 +463,7 @@ export class PinterestClient {
     const response = await fetch(`${pinterestApiBase(this.config)}/oauth/token`, {
       method: "POST",
       redirect: "error",
+      signal: AbortSignal.timeout(TOKEN_TIMEOUT_MS),
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Basic ${credentials}`,
@@ -382,15 +476,15 @@ export class PinterestClient {
     refuseRedirect(response, "Pinterest token refresh");
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({})) as Record<string, unknown>;
+      const error = await readBoundedJson<Record<string, unknown>>(response, MAX_ERROR_RESPONSE_BYTES).catch(() => ({} as Record<string, unknown>));
       throw new PinterestMcpError(
-        typeof error.message === "string" ? error.message : "Failed to refresh Pinterest access token",
+        typeof error.message === "string" ? redactSecrets(error.message, [this.config.refreshToken, this.config.appSecret]) : "Failed to refresh Pinterest access token",
         response.status,
         typeof error.status === "string" ? error.status : undefined
       );
     }
 
-    const payload = await response.json() as { access_token?: string; refresh_token?: string; expires_in?: number };
+    const payload = await readBoundedJson<{ access_token?: string; refresh_token?: string; expires_in?: number }>(response, MAX_ERROR_RESPONSE_BYTES);
     if (!payload.access_token) {
       throw new PinterestMcpError("Pinterest refresh response did not include an access token.");
     }
@@ -399,6 +493,16 @@ export class PinterestClient {
     this.accessToken = payload.access_token;
     return this.accessToken;
   }
+}
+
+function redactSecrets(text: string, secrets: Array<string | undefined>): string {
+  let out = text;
+  for (const secret of secrets) if (secret && secret.length >= 8) out = out.replaceAll(secret, "[redacted]");
+  return out;
+}
+
+function redactToken(text: string, token: string): string {
+  return redactSecrets(text, [token]);
 }
 
 function buildQueryString(params: Record<string, unknown>): string {
