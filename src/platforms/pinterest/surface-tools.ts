@@ -13,9 +13,9 @@ import { redactPinterestBusinessPersonalIdentifiers } from "./privacy.js";
 
 const idSchema = z.string().min(1).max(128);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.");
-const pageSizeSchema = z.number().int().min(1).max(250).default(100);
+const pageSizeSchema = z.number().int().min(1).max(250).prefault(100);
 const bookmarkSchema = z.string().optional();
-const querySchema = z.record(z.unknown()).optional().describe("Additional documented query parameters for the selected fixed GET endpoint.");
+const querySchema = z.record(z.string(), z.unknown()).optional().describe("Additional documented query parameters for the selected fixed GET endpoint.");
 
 const targetingTypeSchema = z.enum([
   "APPTYPE",
@@ -166,19 +166,19 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
     "Run live targeting analytics for an ad account, campaigns, ad groups, or ads, broken down by age, gender, location, interest, keyword, audience, placement, device, or other Pinterest targeting types. For data older than the sync window, use pinterest_run_report with targetingTypes and executionMode=async.",
     {
       adAccountId: idSchema.optional(),
-      level: z.enum(["AD_ACCOUNT", "CAMPAIGN", "AD_GROUP", "AD"]).default("AD_GROUP"),
+      level: z.enum(["AD_ACCOUNT", "CAMPAIGN", "AD_GROUP", "AD"]).prefault("AD_GROUP"),
       entityIds: z.array(idSchema).max(100).optional(),
       startDate: dateSchema,
       endDate: dateSchema,
       targetingTypes: z.array(z.string()).min(1).max(20),
-      columns: z.array(z.string()).min(1).max(50).default(["SPEND_IN_DOLLAR", "IMPRESSION_1", "CLICKTHROUGH_1", "OUTBOUND_CLICK_1", "TOTAL_CHECKOUT", "CHECKOUT_ROAS"]),
-      granularity: z.enum(["TOTAL", "DAY", "HOUR", "WEEK", "MONTH"]).default("DAY"),
-      clickWindowDays: z.number().int().min(0).max(60).default(30),
-      engagementWindowDays: z.number().int().min(0).max(60).default(30),
-      viewWindowDays: z.number().int().min(0).max(60).default(1),
-      conversionReportTime: z.enum(["TIME_OF_AD_ACTION", "TIME_OF_CONVERSION"]).default("TIME_OF_AD_ACTION"),
+      columns: z.array(z.string()).min(1).max(50).prefault(["SPEND_IN_DOLLAR", "IMPRESSION_1", "CLICKTHROUGH_1", "OUTBOUND_CLICK_1", "TOTAL_CHECKOUT", "CHECKOUT_ROAS"]),
+      granularity: z.enum(["TOTAL", "DAY", "HOUR", "WEEK", "MONTH"]).prefault("DAY"),
+      clickWindowDays: z.number().int().min(0).max(60).prefault(30),
+      engagementWindowDays: z.number().int().min(0).max(60).prefault(30),
+      viewWindowDays: z.number().int().min(0).max(60).prefault(1),
+      conversionReportTime: z.enum(["TIME_OF_AD_ACTION", "TIME_OF_CONVERSION"]).prefault("TIME_OF_AD_ACTION"),
       attributionTypes: z.array(z.enum(["INDIVIDUAL", "HOUSEHOLD"])).optional(),
-      reportingTimezone: z.enum(["PINTEREST_TIME_ZONE", "AD_ACCOUNT_TIME_ZONE"]).default("PINTEREST_TIME_ZONE"),
+      reportingTimezone: z.enum(["PINTEREST_TIME_ZONE", "AD_ACCOUNT_TIME_ZONE"]).prefault("PINTEREST_TIME_ZONE"),
       query: querySchema,
     },
     async (input) => {
@@ -224,7 +224,7 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
     "Read Pinterest's official targeting option catalog for app type, gender, locale, age, location/geo, interest, keyword, or audience. Can also resolve a specific interest ID.",
     {
       adAccountId: idSchema.optional(),
-      targetingType: targetingTypeSchema.default("INTEREST"),
+      targetingType: targetingTypeSchema.prefault("INTEREST"),
       interestId: idSchema.optional(),
       query: querySchema,
     },
@@ -259,7 +259,7 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
       keywords: z.array(z.string().min(1)).max(2000).optional(),
       term: z.string().min(1).optional(),
       terms: z.array(z.string().min(1)).max(100).optional(),
-      limit: z.number().int().min(1).max(10).default(4),
+      limit: z.number().int().min(1).max(10).prefault(4),
       pageSize: pageSizeSchema,
       bookmark: bookmarkSchema,
     },
@@ -310,9 +310,9 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
       audienceId: idSchema.optional(),
       customerListId: idSchema.optional(),
       businessId: idSchema.optional(),
-      allowCrossBusinessRead: z.boolean().optional().default(false)
+      allowCrossBusinessRead: z.boolean().prefault(false)
         .describe("Explicit opt-in required if the business cannot be linked to the selected ad account."),
-      accountType: z.enum(["AD_ACCOUNT", "BUSINESS_ACCOUNT"]).default("AD_ACCOUNT"),
+      accountType: z.enum(["AD_ACCOUNT", "BUSINESS_ACCOUNT"]).prefault("AD_ACCOUNT"),
       ownershipType: z.enum(["OWNED", "RECEIVED"]).optional(),
       excludeNca: z.boolean().optional(),
       pageSize: pageSizeSchema,
@@ -382,8 +382,8 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
     "Read aggregated Pinterest Audience Insights for the advertiser's total or engaged audience, Pinterest's total audience, or the scope/type endpoint. Pinterest fixes the audience-insights observation window; it is not a custom date-range report.",
     {
       adAccountId: idSchema.optional(),
-      mode: z.enum(["AUDIENCE_PROFILE", "SCOPE_AND_TYPE"]).default("AUDIENCE_PROFILE"),
-      audienceInsightType: z.enum(["YOUR_TOTAL_AUDIENCE", "YOUR_ENGAGED_AUDIENCE", "PINTEREST_TOTAL_AUDIENCE"]).default("YOUR_TOTAL_AUDIENCE"),
+      mode: z.enum(["AUDIENCE_PROFILE", "SCOPE_AND_TYPE"]).prefault("AUDIENCE_PROFILE"),
+      audienceInsightType: z.enum(["YOUR_TOTAL_AUDIENCE", "YOUR_ENGAGED_AUDIENCE", "PINTEREST_TOTAL_AUDIENCE"]).prefault("YOUR_TOTAL_AUDIENCE"),
       query: querySchema,
     },
     async (input) => {
@@ -412,7 +412,7 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
     {
       adAccountId: idSchema.optional(),
       mode: z.enum(["AUDIENCE_SIZE", "BID_FLOOR", "CAMPAIGN_DELIVERY", "ADVANCED_AUCTION_ITEMS"]),
-      request: z.record(z.unknown()),
+      request: z.record(z.string(), z.unknown()),
     },
     async (input) => {
       try {
@@ -440,9 +440,9 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
     "Inspect Pinterest conversion measurement configuration: conversion tags, oCPM-eligible/page-visit tags, Event Quality Score, advertiser-defined events, and conversion-deletion request status. This never sends or deletes conversion events.",
     {
       adAccountId: idSchema.optional(),
-      surfaces: z.array(z.enum(["CONVERSION_TAGS", "OCPM_ELIGIBLE", "PAGE_VISIT", "EVENT_QUALITY_SCORE", "ADVERTISER_DEFINED_EVENTS", "DELETION_REQUESTS"])).min(1).default(["CONVERSION_TAGS", "OCPM_ELIGIBLE", "PAGE_VISIT", "EVENT_QUALITY_SCORE", "ADVERTISER_DEFINED_EVENTS"]),
-      includeDeletedTags: z.boolean().default(false),
-      lookbackPeriod: z.enum(["1d", "14d"]).default("14d"),
+      surfaces: z.array(z.enum(["CONVERSION_TAGS", "OCPM_ELIGIBLE", "PAGE_VISIT", "EVENT_QUALITY_SCORE", "ADVERTISER_DEFINED_EVENTS", "DELETION_REQUESTS"])).min(1).prefault(["CONVERSION_TAGS", "OCPM_ELIGIBLE", "PAGE_VISIT", "EVENT_QUALITY_SCORE", "ADVERTISER_DEFINED_EVENTS"]),
+      includeDeletedTags: z.boolean().prefault(false),
+      lookbackPeriod: z.enum(["1d", "14d"]).prefault("14d"),
       sourcePlatform: z.enum(["WEB", "MOBILE", "MOBILE_ANDROID", "MOBILE_IOS", "OFFLINE", "PINTEREST_WEB", "PINTEREST_ANDROID", "PINTEREST_IOS", "POINT_OF_SALE"]).optional(),
       ingestionSource: z.enum(["TAG", "MMP", "FILE_UPLOAD", "CONVERSIONS_API", "NATIVE"]).optional(),
       pageSize: pageSizeSchema,
@@ -480,7 +480,7 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
       processingResultId: idSchema.optional(),
       batchId: idSchema.optional().describe("Catalog item batch ID returned by pinterest_batch_catalog_items."),
       productGroupId: idSchema.optional(),
-      request: z.record(z.unknown()).optional().describe("Required for ITEMS; Pinterest CatalogsItemsRequest with country, language, and filters."),
+      request: z.record(z.string(), z.unknown()).optional().describe("Required for ITEMS; Pinterest CatalogsItemsRequest with country, language, and filters."),
       pageSize: pageSizeSchema,
       bookmark: bookmarkSchema,
       query: querySchema,
@@ -559,11 +559,11 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
     {
       adAccountId: idSchema.optional(),
       exportType: z.enum(["MMM", "BULK_ENTITIES", "CATALOG_DIAGNOSTICS"]),
-      action: z.enum(["START", "STATUS"]).default("START"),
-      request: z.record(z.unknown()).optional().describe("Pinterest request body required by START."),
+      action: z.enum(["START", "STATUS"]).prefault("START"),
+      request: z.record(z.string(), z.unknown()).optional().describe("Pinterest request body required by START."),
       token: z.string().optional().describe("MMM or catalog report token required by STATUS."),
       bulkRequestId: idSchema.optional().describe("Bulk request ID required by BULK_ENTITIES STATUS."),
-      includeDetails: z.boolean().default(true),
+      includeDetails: z.boolean().prefault(true),
     },
     async (input) => {
       try {
@@ -656,9 +656,9 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
       pageSize: pageSizeSchema,
       bookmark: bookmarkSchema,
       query: querySchema,
-      allowCrossBusinessRead: z.boolean().optional().default(false)
+      allowCrossBusinessRead: z.boolean().prefault(false)
         .describe("Explicit opt-in required if businessId cannot be linked to the selected ad account."),
-      includePersonalIdentifiers: z.boolean().optional().default(false)
+      includePersonalIdentifiers: z.boolean().prefault(false)
         .describe("MEMBERS, ASSET_MEMBERS and INVITES only. Explicitly include member IDs/email/username; false redacts them."),
     },
     async (input) => {
@@ -756,7 +756,7 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
       startDate: dateSchema,
       endDate: dateSchema,
       metrics: z.array(z.string()).min(1).max(50),
-      granularity: z.enum(["TOTAL", "DAY", "HOUR", "WEEK", "MONTH"]).default("DAY"),
+      granularity: z.enum(["TOTAL", "DAY", "HOUR", "WEEK", "MONTH"]).prefault("DAY"),
       sortBy: z.string().optional().describe("Required by Pinterest top-Pin endpoints; defaults to IMPRESSION."),
       query: querySchema,
     },
@@ -835,10 +835,10 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
     "Read Pinterest Trends: top growing/monthly/yearly/seasonal keywords by supported region, growing product categories, product-category details, featured topics, or editorial articles.",
     {
       mode: z.enum(["KEYWORDS", "PRODUCT_CATEGORIES", "PRODUCT_CATEGORY_DETAILS", "FEATURED_TOPICS", "EDITORIAL_ARTICLES"]),
-      region: trendRegionSchema.default("FR"),
-      productRegion: z.enum(["US", "GB+IE", "CA"]).default("US"),
-      trendType: z.enum(["growing", "monthly", "yearly", "seasonal"]).default("growing"),
-      limit: z.number().int().min(1).max(50).default(50),
+      region: trendRegionSchema.prefault("FR"),
+      productRegion: z.enum(["US", "GB+IE", "CA"]).prefault("US"),
+      trendType: z.enum(["growing", "monthly", "yearly", "seasonal"]).prefault("growing"),
+      limit: z.number().int().min(1).max(50).prefault(50),
       interests: z.array(z.string()).optional(),
       genders: z.array(z.string()).optional(),
       ageBuckets: z.array(z.string()).optional(),
@@ -846,8 +846,8 @@ export function registerPinterestSurfaceTools(server: McpServer, config: Pintere
       includeDemographics: z.boolean().optional(),
       productCategories: z.array(z.string()).min(1).max(20).optional(),
       verticals: z.array(z.string()).optional(),
-      productLookbackDays: z.union([z.literal(90), z.literal(180), z.literal(365), z.literal(730)]).default(365),
-      productEngagementType: z.enum(["ENGAGEMENT", "OUTBOUND_CLICK", "SAVE"]).default("ENGAGEMENT"),
+      productLookbackDays: z.union([z.literal(90), z.literal(180), z.literal(365), z.literal(730)]).prefault(365),
+      productEngagementType: z.enum(["ENGAGEMENT", "OUTBOUND_CLICK", "SAVE"]).prefault("ENGAGEMENT"),
       featuredInterest: z.string().optional(),
       query: querySchema,
     },

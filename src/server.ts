@@ -9,7 +9,7 @@ import type { PinterestConfig } from "./config.js";
 import { registerPinterest } from "./platforms/pinterest/index.js";
 import { logger } from "./core/logger.js";
 
-export const PACKAGE_VERSION = "2.1.0";
+export const PACKAGE_VERSION = "2.1.1";
 
 export function createServer(config: PinterestConfig): McpServer {
   const server = new McpServer(

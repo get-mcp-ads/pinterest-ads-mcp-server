@@ -24,7 +24,7 @@ const id = z
   .regex(/^\d+$/, "Pinterest IDs are numeric, without act_ prefixes.")
   .describe("Numeric Pinterest entity ID in the selected advertiser context.");
 const native = z
-  .record(z.unknown())
+  .record(z.string(), z.unknown())
   .describe(
     "Native Pinterest v5 request fields. Read pinterest_get_write_schema first. Monetary native fields are integer micro currency units.",
   );
