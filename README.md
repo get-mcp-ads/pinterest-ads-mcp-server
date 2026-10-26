@@ -29,25 +29,18 @@ Run locally with your own platform credentials and a client that supports stdio 
 ## What's new
 
 <!-- release-history:start -->
-**[v2.1.0: Rename tools and native video uploads](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases/tag/v2.1.0) · October 23, 2026**
+**[v2.1.1: Zod 4 security update](https://github.com/get-mcp-ads/pinterest-ads-mcp-server/releases/tag/v2.1.1) · October 26, 2026**
 
-- Add `pinterest_rename_campaign`, `pinterest_rename_adgroup` and `pinterest_rename_ad`. Each previews, then changes the name only.
-- Add the native video upload flow: `pinterest_prepare_video_upload`, `pinterest_upload_video` and `pinterest_get_video_upload`. The video comes from a local file or an HTTPS URL that passes the report URL checks, and goes to the upload destination Pinterest returns, without the access token.
-- Add the optional account allowlist `PINTEREST_AD_ACCOUNT_IDS`. When it is set, requests that name another ad account are refused before they are sent, and account discovery only returns listed accounts. When it is unset, the server writes a notice to stderr at startup, and `PINTEREST_AD_ACCOUNT_ID` remains a default account as in 2.0.
-- Deprecate `1`, `yes` and `on` for `PINTEREST_ENABLE_WRITES`. They still enable writes, with a notice on stderr. Unrecognized values now stop the server at startup instead of silently disabling writes.
-- Refuse incomplete sync analytics responses and read targeting analytics from `MetricsResponse.data`.
-- Rename the attribution default in `pinterest://attribution` to `defaultAttribution`. The former `defaults` key remains as an alias.
-- Add timeouts and response size limits to every Pinterest request, and redact the access token from provider error text.
-- Update `@modelcontextprotocol/sdk` to 1.32.1 and regenerate the lockfile. `npm audit --omit=dev` reports no vulnerabilities.
-- Require Node.js 22.23.4, 24.22.1, 26.12.1 or a newer release. The server writes a warning to stderr on an older runtime, and `npm run doctor` reports it.
-- Publish releases from version tags with `release.yml`, which replaces `publish-mcp.yml`. CI covers Node 22, 24 and 26 and audits runtime dependencies. Dependabot proposes updates weekly.
-- Expose 29 read tools and 30 write tools.
-- No breaking change. Version 3.0.0 will require `PINTEREST_AD_ACCOUNT_IDS` and will accept only `true` to enable writes.
+- Update `zod` to 4.6.7. Every Zod release before 4.6.6 is covered by the high-severity advisory GHSA-mrhx-c7xc-m3w5: validating an oversized constrained collection can exhaust memory, and no Zod 3 release carries the fix. `npm audit --omit=dev` reports no vulnerability again.
+- Keep the Zod 3 validation behaviour. A parameter default is still validated and completed before use, so an omitted object must still supply its required fields.
+- Keep each parameter's own description when the parameter is optional or has a default. Zod 4 stores a description on the wrapped schema only, so the shared fallback description could otherwise replace it.
+- Tool names, parameters and descriptions published over MCP are unchanged. `server-card.json` is regenerated with Zod 4's JSON Schema output, which spells some constraints differently.
 
 **Earlier releases**
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| 2.1.0 | October 23, 2026 | Rename tools and native video uploads |
 | 2.0.1 | September 23, 2026 | Public repository restored |
 | 2.0.0 | September 20, 2026 | Gateway sync and security fixes |
 | 1.1.0 | September 13, 2026 | Platform capability sync and quality contracts |
@@ -78,7 +71,7 @@ Read the current tool schemas before reusing saved arguments. Writes remain opti
 This is a GitHub source release. npm and MCP Registry versions are published separately. The commands below select this exact version; unpinned `npx` examples later in this document select the version currently available on npm.
 
 ```bash
-git clone --branch v2.1.0 --depth 1 https://github.com/get-mcp-ads/pinterest-ads-mcp-server.git
+git clone --branch v2.1.1 --depth 1 https://github.com/get-mcp-ads/pinterest-ads-mcp-server.git
 cd pinterest-ads-mcp-server
 npm ci
 npm run build

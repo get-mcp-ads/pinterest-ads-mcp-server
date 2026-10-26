@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 - 2026-10-26 - Zod 4 security update
+- Update `zod` to 4.6.7. Every Zod release before 4.6.6 is covered by the high-severity advisory GHSA-mrhx-c7xc-m3w5: validating an oversized constrained collection can exhaust memory, and no Zod 3 release carries the fix. `npm audit --omit=dev` reports no vulnerability again.
+- Keep the Zod 3 validation behaviour. A parameter default is still validated and completed before use, so an omitted object must still supply its required fields.
+- Keep each parameter's own description when the parameter is optional or has a default. Zod 4 stores a description on the wrapped schema only, so the shared fallback description could otherwise replace it.
+- Tool names, parameters and descriptions published over MCP are unchanged. `server-card.json` is regenerated with Zod 4's JSON Schema output, which spells some constraints differently.
+
 ## 2.1.0 - 2026-10-23 - Rename tools and native video uploads
 - Add `pinterest_rename_campaign`, `pinterest_rename_adgroup` and `pinterest_rename_ad`. Each previews, then changes the name only.
 - Add the native video upload flow: `pinterest_prepare_video_upload`, `pinterest_upload_video` and `pinterest_get_video_upload`. The video comes from a local file or an HTTPS URL that passes the report URL checks, and goes to the upload destination Pinterest returns, without the access token.

@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "pinterest-ads-mcp-server",
   "display_name": "Pinterest Ads by getmcpads",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Pinterest Ads MCP server: 29 read tools, 30 opt-in preview-first writes.",
   "author": {
     "name": "getmcpads",

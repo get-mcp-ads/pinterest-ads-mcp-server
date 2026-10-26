@@ -19,7 +19,7 @@ const configSchema = z.object({
    * 3.0.0 will require it.
    */
   allowedAccountIds: z.array(accountId).min(1).max(200).optional(),
-  logLevel: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  logLevel: z.enum(["debug", "info", "warn", "error"]).prefault("info"),
 }).refine((config) => {
   if (config.accessToken) return true;
   return Boolean(config.refreshToken && config.appId && config.appSecret);
